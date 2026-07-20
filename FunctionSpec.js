@@ -20,12 +20,7 @@ class FunctionSpec
     }
 
 
-    #test()
-    {
-        console.log("kos nane JS");
-        
-    }
-    
+
 
     run(args)
     {
