@@ -133,6 +133,12 @@ const valueTests = [
 		expression: "(x + y) / 2",
 		variables: { x: 1.25, y: 2.75 },
 		expected: 2
+	},
+	{
+		name: "Identifier before parentheses implies multiplication",
+		expression: "x(2 + 3)",
+		variables: { x: 4 },
+		expected: 20
 	}
 ];
 
@@ -168,9 +174,10 @@ const errorTests = [
 		expectedMessagePart: "Mismatched parenthesis"
 	},
 	{
-		name: "Unknown identifier",
+		name: "Identifier must be numeric",
 		expression: "x + 1",
-		expectedMessagePart: "Unknown identifier"
+		variables: { x: Number.NaN },
+		expectedMessagePart: "Identifier is not numeric"
 	},
 	{
 		name: "Wrong fixed arity",

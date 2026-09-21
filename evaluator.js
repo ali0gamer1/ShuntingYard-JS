@@ -139,9 +139,13 @@ function createDefaultRegistry() {
 
 //setup
 export function promptForMissingVariables(tokens, registry, variables) {
-    for (const token of tokens) {
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+
         // If it is an identifier but not a registered function
         if (token.type === TokenType.Identifier && !registry.isFunction(token.token)) {
+
+            
             // Check if it's missing from the passed variables
             if (!Object.prototype.hasOwnProperty.call(variables, token.token)) {
                 const ans = question(`Unknown identifier "${token.token}".\nPlease assign a numeric value: `);
@@ -180,13 +184,7 @@ export function evalRPN(rpn, registry, variables)
             
             if (!Object.prototype.hasOwnProperty.call(variables, token.token)) 
             {
-                // let ans = question(`Unknown identifier: ${token.token}\nProceed by assigning a value: `);
-                // let _token = Tokenize(ans, registry);
-
-           
-                // variables[token.token] = evalRPN(new Parser().toRPN(_token, registry), registry, variables)
                 throw new Error(`Unknown identifier: ${token.token}`)
-        
             }
             
             
@@ -259,7 +257,8 @@ export function evalRPN(rpn, registry, variables)
             const result = operatorSpec.operation(a, b);
             stack.push(result);
         }
-	}
+        
+    }
 
     if (stack.length !== 1) {
             throw new Error('Invalid expression: too many values left on stack');
@@ -280,23 +279,6 @@ const tokens = Tokenize(expression, registry);
     const rpn = parser.toRPN(tokens, registry);    
     return evalRPN(rpn, registry, variables);
 }
-
-
-
-
-   while(true)
-    {
-        console.log("=====================");
-   
-        let inp = question()
-        
-        console.log(main(inp, {a:10, b:22}));
-        
-        console.log("=====================");
-
-    }
-    
-    
 
 
 
