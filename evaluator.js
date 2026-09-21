@@ -80,6 +80,17 @@ function createDefaultRegistry() {
     }));
 
 
+    registry.RegisterFunction(new FunctionSpec(
+        {
+            Symbol: "floor",
+            fixedArity: true,
+            arity: 1,
+            operation: (args)=>Math.floor(args[0])
+        }
+
+    ));
+
+
     registry.RegisterFunction(new FunctionSpec({
         Symbol: 'max',
         fixedArity: false,
@@ -127,7 +138,25 @@ function createDefaultRegistry() {
 
 
 //setup
-
+export function promptForMissingVariables(tokens, registry, variables) {
+    for (const token of tokens) {
+        // If it is an identifier but not a registered function
+        if (token.type === TokenType.Identifier && !registry.isFunction(token.token)) {
+            // Check if it's missing from the passed variables
+            if (!Object.prototype.hasOwnProperty.call(variables, token.token)) {
+                const ans = question(`Unknown identifier "${token.token}".\nPlease assign a numeric value: `);
+                const num = Number(ans);
+                
+                if (Number.isNaN(num)) {
+                    throw new Error(`Value for "${token.token}" must be numeric.`);
+                }
+                
+                // Cache it so we don't ask again for the same variable
+                variables[token.token] = num;
+            }
+        }
+    }
+}
 
 
 export function evalRPN(rpn, registry, variables)
@@ -242,7 +271,11 @@ export function evalRPN(rpn, registry, variables)
 export function main(expression, variables = {}, registry = createDefaultRegistry())
 {
     
-    const tokens = Tokenize(expression, registry);
+const tokens = Tokenize(expression, registry);
+    
+    // Scan and prompt for missing variables before parser runs
+    promptForMissingVariables(tokens, registry, variables);
+    
     const parser = new Parser();    
     const rpn = parser.toRPN(tokens, registry);    
     return evalRPN(rpn, registry, variables);
