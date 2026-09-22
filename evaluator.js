@@ -142,7 +142,6 @@ export function promptForMissingVariables(tokens, registry, variables) {
     for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
 
-        // If it is an identifier but not a registered function
         if (token.type === TokenType.Identifier && !registry.isFunction(token.token)) {
 
             
@@ -178,15 +177,15 @@ export function evalRPN(rpn, registry, variables)
 		}
 
 
+        //check if variable is defined in the variables object.
+        // and do a reinforced check to ensure the identifier is valid and numeric
         if (token.type === TokenType.Identifier && !registry.isFunction(token.token))
         {
-            //console.log(token);
             
             if (!Object.prototype.hasOwnProperty.call(variables, token.token)) 
             {
                 throw new Error(`Unknown identifier: ${token.token}`)
             }
-            
             
             
             if (Number.isNaN(variables[token.token])) 
@@ -212,6 +211,7 @@ export function evalRPN(rpn, registry, variables)
             let argCount = functionArgCountStack.pop();
             const functionSpec = registry.GetFunction(token.token);
 
+            //reinforced check to ensure the functionSpec is valid
             if (!functionSpec)                
                 throw new Error(`Unknown function in RPN: ${token.token}`);
 
@@ -221,7 +221,6 @@ export function evalRPN(rpn, registry, variables)
 
             const args = stack.splice(stack.length - argCount, argCount);
 
-            //console.log(`args: ${args}`);
             
             if (functionSpec.fixedArity && args.length !== functionSpec.arity)
                 throw new Error(`Function ${token.token} expects ${functionSpec.arity} arguments, got ${args.length}`);
@@ -279,6 +278,23 @@ const tokens = Tokenize(expression, registry);
     const rpn = parser.toRPN(tokens, registry);    
     return evalRPN(rpn, registry, variables);
 }
+
+
+
+
+while(true)
+    {
+        console.log("=====================");
+   
+        let inp = question()
+        
+        console.log(main(inp, {a:10, b:22}));
+        
+        console.log("=====================");
+
+    }
+    
+    
 
 
 
