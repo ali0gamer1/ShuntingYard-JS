@@ -8,7 +8,52 @@ class Parser {
     operatorStack = [];
     argCountStack = [];
     seenArgStack = [];
-    
+    expression = "";
+
+
+    // Builds "message (at position N)" plus a snippet of the surrounding
+    // characters with a caret pointing at the offending token. Falls back to
+    // the plain message if the token has no known location (e.g. tokens
+    // synthesized by the parser itself, like the implied '*' operator).
+    formatErrorLocation(message, token)
+    {
+        const expression = this.expression;
+
+        if (!token || !token.location || token.location.startIndex == null || !expression)
+        {
+            return message;
+        }
+
+        const start = token.location.startIndex;
+        const end = (token.location.endIndex != null && token.location.endIndex >= start)
+            ? token.location.endIndex
+            : start;
+
+        const radius = 12;
+        const contextStart = Math.max(0, start - radius);
+        const contextEnd = Math.min(expression.length - 1, end + radius);
+
+        const before = expression.slice(contextStart, start);
+        const errorText = expression.slice(start, end + 1);
+        const after = expression.slice(end + 1, contextEnd + 1);
+
+        const prefixEllipsis = contextStart > 0 ? "..." : "";
+        const suffixEllipsis = contextEnd < expression.length - 1 ? "..." : "";
+
+        const snippet = `${prefixEllipsis}${before}${errorText}${after}${suffixEllipsis}`;
+        const caretPadding = " ".repeat(prefixEllipsis.length + before.length);
+        const caret = "^".repeat(end - start + 1);
+
+        const positionLabel = start === end ? `position ${start}` : `positions ${start}-${end}`;
+
+        return `${message} (at ${positionLabel})\n  ${snippet}\n  ${caretPadding}${caret}`;
+    }
+
+    raiseError(message, token)
+    {
+        throw new Error(this.formatErrorLocation(message, token));
+    }
+
 
     touchArgStartIfNeeded()
     {
@@ -28,11 +73,12 @@ class Parser {
     }
 
 
-    toRPN(tokens, registry)
+    toRPN(tokens, registry, expression = "")
     {
         this.operatorStack = [];
         this.argCountStack = [];
         this.seenArgStack = [];
+        this.expression = expression ?? "";
 
         let output = [];
 
@@ -91,17 +137,21 @@ class Parser {
                 }
 
                 if (this.argCountStack.length === 0 || this.seenArgStack.length === 0) 
-                    throw new Error("Misplaced comma");
+                {
+
+                    this.raiseError("Misplaced comma, missing parenthesis", currentToken);
+
+                }
 
                 if(this.seenArgStack.at(-1) === false)
                 {
-                    throw new Error("Missing argument");
+                    this.raiseError("Missing argument", currentToken);
                 }
 
                 
                 if(this.operatorStack.length == 0 || this.operatorStack.at(-1).token !== "(")
                 {
-                    throw new Error("Misplaced comma, missing parenthesis");
+                    this.raiseError("Misplaced comma, missing parenthesis", currentToken);
                 }
 
 
@@ -126,7 +176,7 @@ class Parser {
                             tempCurrentOpSpec = registry.GetOperator(currentToken.token);
                             
                             if (tempOpSpec == undefined || tempCurrentOpSpec == undefined)
-                                throw new Error("syntax error, unknown operator: " + (tempOpSpec == undefined ? topStack : currentToken.token));
+                                this.raiseError("syntax error, unknown operator: " + (tempOpSpec == undefined ? topStack.token : currentToken.token), tempOpSpec == undefined ? topStack : currentToken);
 
                             if (tempOpSpec.precedence > tempCurrentOpSpec.precedence || (tempOpSpec.precedence === tempCurrentOpSpec.precedence && tempCurrentOpSpec.associativity === Associativity.Left))
                             {
@@ -181,7 +231,7 @@ class Parser {
                         topStack = this.operatorStack.pop();
 
                         if (this.argCountStack.length == 0 || this.seenArgStack.length == 0)
-                            throw new Error("syntax error, internal arg frame mismatch");
+                            this.raiseError("syntax error, internal arg frame mismatch", currentToken);
                         
                         let argCount = this.argCountStack.pop();
                         let seenArg = this.seenArgStack.pop();
@@ -189,7 +239,7 @@ class Parser {
 
                         if (!seenArg && argCount != 0)
                         {
-                            throw new Error("Misplaced comma")
+                            this.raiseError("Misplaced comma", currentToken);
                         }
 
                         if (argCount == 0 && seenArg){
@@ -200,13 +250,13 @@ class Parser {
                         let funcSpec = registry.GetFunction(topStack.token);
 
                         if (funcSpec==undefined)
-                            throw new Error("syntax error, unknown function: " + topStack.token);
+                            this.raiseError("syntax error, unknown function: " + topStack.token, topStack);
 
                         if (funcSpec.fixedArity)
                         {
                             if (funcSpec.arity != argCount)
                             {
-                                throw new Error("syntax error, function " + topStack.token + " expects " + funcSpec.arity + " arguments, got " + argCount);
+                                this.raiseError("syntax error, function " + topStack.token + " expects " + funcSpec.arity + " arguments, got " + argCount, topStack);
                             }
 
                         }
@@ -214,12 +264,12 @@ class Parser {
                         {
                             if (!funcSpec.overLoads.has(argCount) && (funcSpec.minarity == null || argCount < funcSpec.minarity))
                             {
-                                throw new Error("syntax error, function " + topStack.token + " expects at least " + funcSpec.minarity + " arguments, got " + argCount);
+                                this.raiseError("syntax error, function " + topStack.token + " expects at least " + funcSpec.minarity + " arguments, got " + argCount, topStack);
                             }
 
                             if (!Array.from(funcSpec.overLoads.keys()).includes(argCount) && funcSpec.operation == null)
                             {
-                                throw new Error("syntax error, function " + topStack.token + " does not have an overload for " + argCount + " arguments");
+                                this.raiseError("syntax error, function " + topStack.token + " does not have an overload for " + argCount + " arguments", topStack);
                             }
 
                         }
@@ -247,7 +297,7 @@ class Parser {
             let topStack = this.operatorStack.pop();
             if (topStack.token === "(" || topStack.token === ")")
             {
-                throw new Error("Mismatched parenthesis");
+                this.raiseError("Mismatched parenthesis", topStack);
             }
             output.push(topStack);
         }

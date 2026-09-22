@@ -14,15 +14,16 @@ function Tokenize(input, registry)
     if (registry == null)
         throw new Error("Registry cannot be null");
 
-    
-    input = input.replace(/\s/g, '');
-    
     let tokens = [];
     let currentToken = '';
     let currentTokenType = TokenType.None;
+    let currentTokenStart = -1;
     let lastContext = TokenContext.ExpectValue;
 
-
+    // Note: whitespace is no longer stripped up front. None of the branches
+    // below match a whitespace character, so it is simply skipped over, same
+    // as before - but now token indices stay aligned with the original
+    // expression, which is required for accurate error locations.
     for(let i = 0; i < input.length; i++)
     {
         let char = input[i];
@@ -30,14 +31,25 @@ function Tokenize(input, registry)
         if (char >= '0' && char <= '9' || char === '.' && currentTokenType === TokenType.Number)
         {
             if (currentToken == "")
+            {
                 currentTokenType = TokenType.Number;
+                currentTokenStart = i;
+            }
 
             if (currentTokenType === TokenType.Identifier)
             {
-                tokens.push(new Token(currentTokenType, currentToken));
+                const tokenObj = new Token(currentTokenType, currentToken);
+                
+                tokenObj.location.startIndex = currentTokenStart;
+                tokenObj.location.endIndex = i - 1;
+
+                tokens.push(tokenObj);
+                
+                
 
                 currentToken = "";
                 currentTokenType = TokenType.Number;
+                currentTokenStart = i;
             }
 
             currentToken += char;
@@ -46,13 +58,21 @@ function Tokenize(input, registry)
         else if (isAlpha(char))
         {
             if (currentToken == "")
+            {
                 currentTokenType = TokenType.Identifier;
+                currentTokenStart = i;
+            }
 
             if (currentTokenType === TokenType.Number)
             {
-                tokens.push(new Token(currentTokenType, currentToken));
+                const tokenObj = new Token(currentTokenType, currentToken);
+                tokenObj.location.startIndex = currentTokenStart;
+                tokenObj.location.endIndex = i - 1;
+                tokens.push(tokenObj);
+                
                 currentToken = "";
                 currentTokenType = TokenType.Identifier;
+                currentTokenStart = i;
             }
 
             currentToken += char;
@@ -65,7 +85,11 @@ function Tokenize(input, registry)
             
             if (hasPending)
             {
-                tokens.push(new Token(currentTokenType, currentToken));
+                const tokenObj = new Token(currentTokenType, currentToken);
+                tokenObj.location.startIndex = currentTokenStart;
+                tokenObj.location.endIndex = i - 1;
+                tokens.push(tokenObj);
+
                 currentToken = "";
                 currentTokenType = TokenType.None;
             }
@@ -74,10 +98,20 @@ function Tokenize(input, registry)
             let isUnary = isPlusMinus && (contextForOp === TokenContext.ExpectValue );
 
             if(isUnary)
-                tokens.push(new Token(TokenType.UnaryOperator, `u${char}`));
-            else
-                tokens.push(new Token(TokenType.Operator, char));
+            {
+                const tokenObj = new Token(TokenType.UnaryOperator, `u${char}`);
+                tokenObj.location.startIndex = i;
+                tokenObj.location.endIndex = i;
+                tokens.push(tokenObj);
 
+            }
+            else
+            {
+                const tokenObj = new Token(TokenType.Operator, char);
+                tokenObj.location.startIndex = i;
+                tokenObj.location.endIndex = i;
+                tokens.push(tokenObj);
+            }
 
             lastContext = TokenContext.ExpectValue;
         }
@@ -86,7 +120,11 @@ function Tokenize(input, registry)
         {
             if (currentToken.length > 0)
             {
-                tokens.push(new Token(currentTokenType, currentToken));
+                const tokenObj = new Token(currentTokenType, currentToken);
+                tokenObj.location.startIndex = currentTokenStart;
+                tokenObj.location.endIndex = i - 1;
+                tokens.push(tokenObj);
+
                 currentToken = "";
                 currentTokenType = TokenType.None;
             }
@@ -96,7 +134,10 @@ function Tokenize(input, registry)
             else
                 lastContext = TokenContext.ValueEnded;
 
-            tokens.push(new Token(TokenType.Parenthesis, char));
+            const tokenObj = new Token(TokenType.Parenthesis, char);
+            tokenObj.location.startIndex = i;
+            tokenObj.location.endIndex = i;
+            tokens.push(tokenObj);
 
 
         }
@@ -105,28 +146,32 @@ function Tokenize(input, registry)
         {
             if (currentToken.length > 0)
             {
-                tokens.push(new Token(currentTokenType, currentToken));
+                const tokenObj = new Token(currentTokenType, currentToken);
+                tokenObj.location.startIndex = currentTokenStart;
+                tokenObj.location.endIndex = i - 1;
+                tokens.push(tokenObj);
                 currentToken = "";
                 currentTokenType = TokenType.None;
             }
 
             lastContext = TokenContext.ExpectValue;
-            tokens.push(new Token(TokenType.Comma, char));
+            const tokenObj = new Token(TokenType.Comma, char);
+            tokenObj.location.startIndex = i;
+            tokenObj.location.endIndex = i;
+            tokens.push(tokenObj);
         }
 
     }
 
     if (currentToken.length > 0)
     {
-        tokens.push(new Token(currentTokenType, currentToken));
+        const tokenObj = new Token(currentTokenType, currentToken);
+        tokenObj.location.startIndex = currentTokenStart;
+        tokenObj.location.endIndex = input.length - 1;
+        tokens.push(tokenObj);
     }
 
     return tokens;
-
-
-
-
-
 }
 
 export { Tokenize };

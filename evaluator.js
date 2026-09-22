@@ -121,7 +121,7 @@ function createDefaultRegistry() {
             }],
             [3, (args) => {
                 let sum = 0;
-                for(let i = args[0]; i <= args[1]; i+=args[2])
+                for(let i = args[0]; i <= args[1]; i += args[2])
                 {
                     sum += i;
                 }
@@ -269,31 +269,35 @@ export function evalRPN(rpn, registry, variables)
 export function main(expression, variables = {}, registry = createDefaultRegistry())
 {
     
-const tokens = Tokenize(expression, registry);
+    const tokens = Tokenize(expression, registry);
     
     // Scan and prompt for missing variables before parser runs
     promptForMissingVariables(tokens, registry, variables);
     
     const parser = new Parser();    
-    const rpn = parser.toRPN(tokens, registry);    
+    const rpn = parser.toRPN(tokens, registry, expression);    
     return evalRPN(rpn, registry, variables);
 }
 
 
 
+//temp repl
 
-while(true)
-    {
-        console.log("=====================");
-   
-        let inp = question()
-        
-        console.log(main(inp, {a:10, b:22}));
-        
-        console.log("=====================");
+while (true) {
+    const input = question("Enter an expression (or 'exit' to quit): ");
 
+    if (input.trim().toLowerCase() === 'exit') {
+        break;
     }
-    
+    try {
+        const result = main(input);
+        console.log(`Result: ${result}`);
+    } catch (e) {
+        console.log(`Error: ${e.message}`);
+    }
+
+}
+
     
 
 

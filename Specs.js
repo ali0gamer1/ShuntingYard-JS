@@ -18,6 +18,7 @@ class Token {
     constructor(type, token) {
         this.type = type;
         this.token = token;
+        this.location = {startIndex: null, endIndex: null};
     }
 }
 
