@@ -230,6 +230,12 @@ class Parser {
                         this.touchArgStartIfNeeded();
                         
                     }
+
+                    const nextToken = tokens[i + 1];
+                    if (nextToken != null && nextToken.token === "(") {
+                        this.operatorStack.push(new Token(TokenType.Operator, "*"));
+                    }
+
                 }
             }
            
