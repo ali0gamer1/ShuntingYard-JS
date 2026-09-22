@@ -45,6 +45,13 @@ class Parser {
 
             if (currentToken.type === TokenType.Number)
             {
+                //check if the next token is a parenthesis, if so, we assume multiplication is intented,
+                //  so we push a multiplication operator before the number
+                let nextToken = tokens[i + 1];
+                if (nextToken != null && nextToken.token === "(") {
+                    this.operatorStack.push(new Token(TokenType.Operator, "*"));
+                }
+
                 output.push(currentToken);
                 this.touchArgStartIfNeeded();
             }
@@ -62,7 +69,8 @@ class Parser {
                 }
                 else
                 {
-                    //check if the next token is a parenthesis, if so, we assume multiplication is intented, so we push a multiplication operator before the identifier
+                    //check if the next token is a parenthesis, if so, we assume multiplication is intented,
+                    //  so we push a multiplication operator before the identifier
                     if (nextToken != null && nextToken.token === "(") {
                         this.operatorStack.push(new Token(TokenType.Operator, "*"));
                     }
@@ -74,6 +82,7 @@ class Parser {
             else
             if (currentToken.type === TokenType.Comma)
             {
+                
                 
                 
                 while (this.operatorStack.length > 0 && this.operatorStack.at(-1).token !== "(")
@@ -178,7 +187,6 @@ class Parser {
                         let seenArg = this.seenArgStack.pop();
 
 
-                        //for chat: is this correct?
                         if (!seenArg && argCount != 0)
                         {
                             throw new Error("Misplaced comma")
@@ -245,8 +253,6 @@ class Parser {
 
     
 }
-
-
 
 
 
