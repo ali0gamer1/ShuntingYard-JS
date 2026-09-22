@@ -4,6 +4,8 @@ A small JavaScript expression evaluator built around the shunting-yard algorithm
 
 It tokenizes an expression, converts it to Reverse Polish Notation (RPN), and evaluates the result with pluggable operators and functions.
 
+When parsing fails, the evaluator now reports the exact token position and shows a short slice of the surrounding expression with a caret pointing at the problem area.
+
 ## What it supports
 
 - Numbers and decimals
@@ -49,6 +51,27 @@ console.log(result); // 12
 ```
 
 Identifiers that are not registered as functions are treated as variables.
+
+## Error reporting
+
+Syntax errors are reported with:
+
+- the error message
+- the character index or token span where the problem occurred
+- a small excerpt of the original expression
+- a caret marker pointing to the failing character or token
+
+Examples of parser errors that now include location context:
+
+- misplaced commas
+- missing arguments
+- mismatched parentheses
+- unknown functions
+- wrong function arity
+
+This location data is based on the original input string, so the reported position remains correct even when the expression contains whitespace.
+
+For runtime math errors, the evaluator still relies on the registered operation or function to decide whether a bad value should throw. For example, division by zero in JavaScript returns `Infinity` unless you explicitly check for it in the operator implementation.
 
 ## Register a custom function
 
@@ -160,6 +183,7 @@ const clamp = new FunctionSpec({
 ## Notes
 
 - Unknown identifiers are treated as variables
-- Unknown operators or invalid function calls throw errors
-- Comma and parenthesis validation is handled during parsing
+- Unknown operators or invalid function calls throw errors with source context
+- Comma and parenthesis validation is handled during parsing with caret-style location output
+- Token positions are preserved from the original expression so error spans stay accurate
 
