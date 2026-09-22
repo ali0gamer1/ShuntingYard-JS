@@ -32,6 +32,7 @@ class OperatorSpec
         this.associativity = associativity;
         this.operation = operation;
         this.unaryOperation = unaryOperation;
+        
     }
     
 }

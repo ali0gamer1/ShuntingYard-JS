@@ -5,9 +5,11 @@ import { Parser } from "./Parser.js";
 import { Tokenize } from "./Tokenizer.js";
 import { TokenType } from "./Specs.js";
 import { Associativity } from "./Specs.js";
+import { raiseError } from "./ErrorFormat.js";
 
 
 import { question } from "readline-sync";
+import { log } from "node:console";
 
 
 
@@ -44,7 +46,13 @@ function createDefaultRegistry() {
 		precedence: 3,
 		associativity: Associativity.Left,
 		arity: 2,
-		operation: (a, b) => a / b
+		operation: (a, b) => {
+
+            if (b === 0) {
+                throw new Error("Division by zero");
+            }
+            return a / b;
+        }
 	}));
 
 	registry.RegisterOperator(new OperatorSpec({
@@ -52,7 +60,12 @@ function createDefaultRegistry() {
 		precedence: 4,
 		associativity: Associativity.Right,
 		arity: 2,
-		operation: (a, b) => Math.pow(a, b)
+		operation: (a, b) => {
+            if (b < 0) {
+                throw new Error("Negative exponent not allowed");
+            }
+            return Math.pow(a, b);
+        }
 	}));
 
 	registry.RegisterOperator(new OperatorSpec({
@@ -76,7 +89,12 @@ function createDefaultRegistry() {
         Symbol: 'sqrt',
         fixedArity: true,
         arity: 1,
-        operation: (args) => Math.sqrt(args[0])
+        operation: (args) => {
+            if (args[0] < 0) {
+                throw new Error("Square root of negative number is not allowed");
+            }
+            return Math.sqrt(args[0]);
+        }
     }));
 
 
@@ -162,7 +180,7 @@ export function promptForMissingVariables(tokens, registry, variables) {
 }
 
 
-export function evalRPN(rpn, registry, variables)
+export function evalRPN(rpn, registry, variables, expression = "")
 {    
     const stack = [];
 	const functionArgCountStack = [];
@@ -184,7 +202,8 @@ export function evalRPN(rpn, registry, variables)
             
             if (!Object.prototype.hasOwnProperty.call(variables, token.token)) 
             {
-                throw new Error(`Unknown identifier: ${token.token}`)
+                //throw new Error(`Unknown identifier: ${token.token}`)
+                raiseError(`Unknown identifier: ${token.token}`, token, expression);
             }
             
             
@@ -213,21 +232,37 @@ export function evalRPN(rpn, registry, variables)
 
             //reinforced check to ensure the functionSpec is valid
             if (!functionSpec)                
-                throw new Error(`Unknown function in RPN: ${token.token}`);
-
+            {
+                //throw new Error(`Unknown function in RPN: ${token.token}`);
+                raiseError(`Unknown function in RPN: ${token.token}`, token, expression);
+            }
+                
 
             if(stack.length < argCount)
-                throw new Error(`Insufficient arguments for function: ${token.token}`);
+            {
+                //throw new Error(`Insufficient arguments for function: ${token.token}`);
+                raiseError(`Insufficient arguments for function: ${token.token}`, token, expression);
+            }
 
             const args = stack.splice(stack.length - argCount, argCount);
 
             
             if (functionSpec.fixedArity && args.length !== functionSpec.arity)
-                throw new Error(`Function ${token.token} expects ${functionSpec.arity} arguments, got ${args.length}`);
+            {
+                //throw new Error(`Function ${token.token} expects ${functionSpec.arity} arguments, got ${args.length}`);
+                raiseError(`Function ${token.token} expects ${functionSpec.arity} arguments, got ${args.length}`, token, expression);
+            }
 
 
 
-            let result = functionSpec.run(args);
+            let result;
+
+            try {
+                result = functionSpec.run(args);
+            }
+            catch (error) {
+                raiseError(error.message, token, expression);
+            }
 
 
             stack.push(result);
@@ -236,24 +271,49 @@ export function evalRPN(rpn, registry, variables)
 
         if(registry.isOperator(token.token))
         {
+            let result;
             const operatorSpec = registry.GetOperator(token.token);
             if (!operatorSpec)                
-                throw new Error(`Unknown operator in RPN: ${token.token}`);
+            {
+                //throw new Error(`Unknown operator in RPN: ${token.token}`);
+                raiseError(`Unknown operator in RPN: ${token.token}`, token, expression);
+            }
 
             if (stack.length < operatorSpec.arity)
-                throw new Error(`Insufficient arguments for operator: ${token.token}`);
+            {
+                //throw new Error(`Insufficient arguments for operator: ${token.token}`);
+                raiseError(`Insufficient arguments for operator: ${token.token}`, token, expression);
+            }
 
             if (operatorSpec.arity === 1) 
             {
                 const value = stack.pop();
-                const result = operatorSpec.unaryOperation(value);
+                try {
+                    result = operatorSpec.unaryOperation(value);
+                } catch (error) {
+                    raiseError(error.message, token, expression);
+                }
+
                 stack.push(result);
                 continue;
             }
 
+            
             const b = stack.pop();
             const a = stack.pop();
-            const result = operatorSpec.operation(a, b);
+
+            try {
+                result = operatorSpec.operation(a, b);
+            } catch (error) {
+                raiseError(error.message, token, expression);
+            }
+
+            //if the result is not a number or is NaN, raise an error with the return value being the message
+            if (typeof result !== 'number' || Number.isNaN(result)) {
+                //throw new Error(`Operator ${token.token} returned an invalid result`);
+                raiseError(result, token, expression);
+            }
+
             stack.push(result);
         }
         
@@ -276,7 +336,7 @@ export function main(expression, variables = {}, registry = createDefaultRegistr
     
     const parser = new Parser();    
     const rpn = parser.toRPN(tokens, registry, expression);    
-    return evalRPN(rpn, registry, variables);
+    return evalRPN(rpn, registry, variables, expression);
 }
 
 
@@ -289,12 +349,9 @@ while (true) {
     if (input.trim().toLowerCase() === 'exit') {
         break;
     }
-    try {
-        const result = main(input);
-        console.log(`Result: ${result}`);
-    } catch (e) {
-        console.log(`Error: ${e.message}`);
-    }
+    const result = main(input);
+
+    console.log(result);
 
 }
 
