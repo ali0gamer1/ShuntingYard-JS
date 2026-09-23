@@ -281,7 +281,6 @@ export function evalRPN(rpn, registry, variables, expression = "")
 
             if (stack.length < operatorSpec.arity)
             {
-                //throw new Error(`Insufficient arguments for operator: ${token.token}`);
                 raiseError(`Insufficient arguments for operator: ${token.token}`, token, expression);
             }
 

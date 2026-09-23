@@ -48,7 +48,12 @@ class Parser {
                 //  so we push a multiplication operator before the number
                 let nextToken = tokens[i + 1];
                 if (nextToken != null && nextToken.token === "(") {
-                    this.operatorStack.push(new Token(TokenType.Operator, "*"));
+                    const tokenObj = new Token(TokenType.Operator, "*");
+                    tokenObj.location.startIndex = currentToken.location.startIndex + 1;
+                    tokenObj.location.endIndex = currentToken.location.startIndex + 1;
+                    
+                    this.operatorStack.push(tokenObj);
+
                 }
 
                 output.push(currentToken);
@@ -71,7 +76,13 @@ class Parser {
                     //check if the next token is a parenthesis, if so, we assume multiplication is intented,
                     //  so we push a multiplication operator before the identifier
                     if (nextToken != null && nextToken.token === "(") {
-                        this.operatorStack.push(new Token(TokenType.Operator, "*"));
+                        
+                        const tokenObj = new Token(TokenType.Operator, "*");
+                        tokenObj.location.startIndex = currentToken.location.startIndex + 1;
+                        tokenObj.location.endIndex = currentToken.location.startIndex + 1;
+
+                        this.operatorStack.push(tokenObj);
+
                     }
 
                     output.push(currentToken);
