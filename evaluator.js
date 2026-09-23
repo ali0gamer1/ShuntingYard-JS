@@ -319,6 +319,11 @@ export function evalRPN(rpn, registry, variables, expression = "")
     }
 
     if (stack.length !== 1) {
+
+        console.log("stack:");
+        
+            console.log(stack);
+            
             throw new Error('Invalid expression: too many values left on stack');
         }
 

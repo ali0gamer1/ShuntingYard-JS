@@ -251,6 +251,13 @@ class Parser {
                     }
 
                     const nextToken = tokens[i + 1];
+
+                    //check if next token is a number, if so, we assume multiplication is intented,
+                    //  so we push a multiplication operator after the closing parenthesis
+                    if (nextToken != null && (nextToken.type === TokenType.Number || nextToken.type === TokenType.Identifier)) {
+                        this.operatorStack.push(new Token(TokenType.Operator, "*"));
+                    }
+
                     if (nextToken != null && nextToken.token === "(") {
                         this.operatorStack.push(new Token(TokenType.Operator, "*"));
                     }
