@@ -7,9 +7,13 @@ import { TokenType } from "./Specs.js";
 import { Associativity } from "./Specs.js";
 import { raiseError } from "./ErrorFormat.js";
 
+import { createInterface } from "node:readline/promises";
+import { stdin, stdout } from "node:process";
+const rl = createInterface({
+    input: stdin,
+    output: stdout
+});
 
-import { question } from "readline-sync";
-import { log } from "node:console";
 
 
 
@@ -347,17 +351,26 @@ export function main(expression, variables = {}, registry = createDefaultRegistr
 
 //temp repl
 
-while (true) {
-    const input = question("Enter an expression (or 'exit' to quit): ");
+async function seser() {
 
-    if (input.trim().toLowerCase() === 'exit') {
+while (true) {
+    const input = await rl.question(
+        "Enter an expression (or 'exit' to quit): "
+    );
+
+    if (input.trim().toLowerCase() === "exit") {
         break;
     }
+
     const result = main(input);
-
     console.log(result);
-
 }
+
+rl.close();
+    
+}
+
+seser()
 
     
 
